@@ -23,8 +23,14 @@ model Task {
   id        Int      @id @default(autoincrement())
   task      String
   done      Boolean  @default(false)
+  priority  Priority @default(MEDIUM)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
+}
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
 }
