@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: task-db
     environment:
       POSTGRES_PASSWORD: password
@@ -18,14 +18,24 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: "postgresql://postgres:password@db:5432/taskdb?schema=public"
+      NODE_ENV: development
+      JWT_SECRET: change-this-to-something-long-and-random-later
     depends_on:
       - db
     volumes:
       - .:/app
-      - /app/node_modules
-    command: >
-      sh -c "npx prisma migrate dev --name init &&
-             node server.js"
-
+    command: >-
+      sh -c "until npx prisma migrate dev --name init; do
+             echo 'Waiting for database to be ready...';
+             sleep 2;
+           done &&
+           node server.js"
+  client:
+    build:
+      context: ./client
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
 volumes:
   postgres_data:
