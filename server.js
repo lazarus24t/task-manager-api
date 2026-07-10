@@ -73,8 +73,15 @@ app.post('/login', async (req, res) => {
 
 app.get('/tasks', requireAuth, async (req, res) => {
   try {
+    const { done } = req.query
+
+    const where = { userId: req.user.userId }
+    if (done === 'true') where.done = true
+    if (done === 'false') where.done = false
+
     const tasks = await prisma.task.findMany({
-      where: { userId: req.user.userId },
+      where,
+      orderBy: { createdAt: 'desc' },
     })
     res.json(tasks)
   } catch (error) {
@@ -85,13 +92,22 @@ app.get('/tasks', requireAuth, async (req, res) => {
 
 app.post('/tasks', requireAuth, async (req, res) => {
   try {
-    const { task } = req.body
+    const { task, priority } = req.body
     if (!task) {
       return res.status(400).json({ error: 'Task description is required' })
     }
 
+    const validPriorities = ['LOW', 'MEDIUM', 'HIGH']
+    if (priority && !validPriorities.includes(priority)) {
+      return res.status(400).json({ error: 'Priority must be LOW, MEDIUM, or HIGH' })
+    }
+
     const newTask = await prisma.task.create({
-      data: { task, userId: req.user.userId },
+      data: {
+        task,
+        userId: req.user.userId,
+        ...(priority && { priority }),
+      },
     })
     res.status(201).json(newTask)
   } catch (error) {

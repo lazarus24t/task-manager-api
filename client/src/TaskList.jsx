@@ -5,6 +5,7 @@ const API_URL = 'http://localhost:3000'
 function TaskList({ token, username, onLogout }) {
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState('')
+  const [newPriority, setNewPriority] = useState('MEDIUM')
   const [error, setError] = useState('')
 
   async function fetchTasks() {
@@ -40,7 +41,7 @@ function TaskList({ token, username, onLogout }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ task: newTask }),
+        body: JSON.stringify({ task: newTask, priority: newPriority }),
       })
 
       if (!response.ok) {
@@ -49,6 +50,7 @@ function TaskList({ token, username, onLogout }) {
       }
 
       setNewTask('')
+      setNewPriority('MEDIUM')
       fetchTasks()
     } catch (err) {
       setError('Could not reach the server')
@@ -91,6 +93,35 @@ function TaskList({ token, username, onLogout }) {
     }
   }
 
+  const activeTasks = tasks.filter((t) => !t.done)
+  const completedTasks = tasks.filter((t) => t.done)
+
+  const priorityColor = { HIGH: '#d33', MEDIUM: '#e69500', LOW: '#3a3' }
+
+  function renderTask(task) {
+    return (
+      <li key={task.id} style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 'bold',
+            color: priorityColor[task.priority] || '#666',
+            border: `1px solid ${priorityColor[task.priority] || '#666'}`,
+            borderRadius: 4,
+            padding: '2px 6px',
+          }}
+        >
+          {task.priority}
+        </span>
+        <span style={{ textDecoration: task.done ? 'line-through' : 'none' }}>
+          {task.task}
+        </span>
+        {!task.done && <button onClick={() => handleComplete(task.id)}>Done</button>}
+        <button onClick={() => handleDelete(task.id)}>Delete</button>
+      </li>
+    )
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -98,28 +129,31 @@ function TaskList({ token, username, onLogout }) {
         <button onClick={onLogout}>Log out</button>
       </div>
 
-      <form onSubmit={handleAddTask}>
+      <form onSubmit={handleAddTask} style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         <input
           type="text"
           placeholder="New task"
           value={newTask}
           onChange={(e) => setNewTask(e.target.value)}
         />
+        <select value={newPriority} onChange={(e) => setNewPriority(e.target.value)}>
+          <option value="LOW">Low</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HIGH">High</option>
+        </select>
         <button type="submit">Add</button>
       </form>
 
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
+      <h3>Active</h3>
       <ul style={{ listStyle: 'none', padding: 0 }}>
-        {tasks.map((task) => (
-          <li key={task.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ textDecoration: task.done ? 'line-through' : 'none' }}>
-              {task.task}
-            </span>
-            {!task.done && <button onClick={() => handleComplete(task.id)}>Done</button>}
-            <button onClick={() => handleDelete(task.id)}>Delete</button>
-          </li>
-        ))}
+        {activeTasks.length === 0 ? <p>No active tasks</p> : activeTasks.map(renderTask)}
+      </ul>
+
+      <h3>Completed</h3>
+      <ul style={{ listStyle: 'none', padding: 0 }}>
+        {completedTasks.length === 0 ? <p>No completed tasks</p> : completedTasks.map(renderTask)}
       </ul>
     </div>
   )
